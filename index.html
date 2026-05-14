@@ -1,842 +1,703 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crystal Machines — Whitelist Application</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Syne:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crystal Machines — Whitelist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Josefin+Sans:wght@100;300;400&display=swap" rel="stylesheet" />
   <style>
-    /* ====================== TOKENS ====================== */
-    :root {
-      --cyan:       #7dd8e8;
-      --cyan-bright:#b8f0ff;
-      --cyan-dim:   rgba(125,216,232,0.12);
-      --cyan-glow:  rgba(125,216,232,0.3);
-      --bg:         #040810;
-      --surface:    rgba(255,255,255,0.04);
-      --border:     rgba(255,255,255,0.08);
-      --border-lit: rgba(125,216,232,0.22);
-      --text:       #ddeef5;
-      --muted:      rgba(221,238,245,0.55);
-      --faint:      rgba(221,238,245,0.28);
-      --f-display:  'Syncopate', sans-serif;
-      --f-body:     'Syne', sans-serif;
-      --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-in-out:cubic-bezier(0.65, 0, 0.35, 1);
-    }
-
-    /* ====================== RESET ====================== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-    body { min-height: 100dvh; font-family: var(--f-body); color: var(--text); background: var(--bg); overflow-x: hidden; }
-    img { display: block; max-width: 100%; }
-    button { cursor: pointer; font: inherit; border: none; background: none; color: inherit; }
-    a { color: inherit; text-decoration: none; }
 
-    /* ====================== CANVAS BG ====================== */
-    #bgCanvas {
-      position: fixed; inset: 0; z-index: 0;
-      pointer-events: none;
-      width: 100%; height: 100%;
+    :root {
+      --bg: #060810;
+      --surface: rgba(255,255,255,0.03);
+      --border: rgba(180,220,255,0.1);
+      --border-glow: rgba(180,220,255,0.25);
+      --crystal: #b8e0ff;
+      --crystal-dim: rgba(184,224,255,0.45);
+      --crystal-faint: rgba(184,224,255,0.12);
+      --white: #e8f4ff;
+      --dim: rgba(184,224,255,0.35);
+      --accent: #c8eaff;
+      --yellow: #f5d76e;
+      --blue-btn: rgba(40,80,160,0.6);
+      --blue-btn-h: rgba(55,100,190,0.75);
+      --serif: 'Cormorant Garamond', serif;
+      --sans: 'Josefin Sans', sans-serif;
     }
 
-    /* ====================== SCANLINES ====================== */
-    .scanlines {
-      position: fixed; inset: 0; z-index: 1;
-      background: repeating-linear-gradient(
-        to bottom,
-        transparent,
-        transparent 3px,
-        rgba(0,0,0,0.06) 3px,
-        rgba(0,0,0,0.06) 4px
-      );
-      pointer-events: none;
+    html { min-height: 100vh; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--white);
+      font-family: var(--sans);
+      font-weight: 300;
+      overflow-x: hidden;
+      cursor: crosshair;
     }
 
-    /* ====================== LAYOUT ====================== */
-    .page { position: relative; z-index: 2; }
+    /* ── Animated crystal background ── */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
 
-    /* ====================== NAV ====================== */
-    .nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      padding: 1.1rem 3rem;
-      display: flex; align-items: center; justify-content: space-between;
+    /* Radial light bloom */
+    .bg-layer::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 30%, rgba(100,180,255,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(60,120,200,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 85% 20%, rgba(150,210,255,0.04) 0%, transparent 60%);
+    }
+
+    /* Grid lines */
+    .bg-layer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(180,220,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(180,220,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Prismatic shimmer particles */
+    .particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(180,224,255,0.6);
+      animation: float linear infinite;
+      filter: blur(0.5px);
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.5; }
+      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
       border-bottom: 1px solid var(--border);
-      background: rgba(4,8,16,0.72);
-      backdrop-filter: blur(28px) saturate(1.5);
-      -webkit-backdrop-filter: blur(28px) saturate(1.5);
-      transition: border-color 0.4s;
+      background: rgba(6,8,16,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
-    .nav.scrolled { border-color: var(--border-lit); }
 
     .nav-logo {
-      display: flex; align-items: center; gap: 0.75rem;
-      animation: nav-in 0.8s var(--ease-out) both;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
     }
-    .logo-gem {
-      width: 34px; height: 34px; flex-shrink: 0;
-      animation: gem-spin 18s linear infinite;
-    }
-    @keyframes gem-spin {
-      from { transform: rotateY(0deg); }
-      to   { transform: rotateY(360deg); }
-    }
-    .nav-brand {
-      font-family: var(--f-display);
-      font-size: 0.68rem; font-weight: 700;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--cyan-bright);
-    }
-    .nav-cta {
-      font-family: var(--f-display); font-size: 0.6rem; font-weight: 700;
-      letter-spacing: 0.14em; text-transform: uppercase;
-      padding: 0.55rem 1.4rem;
-      border: 1px solid var(--cyan); border-radius: 100px;
-      color: var(--cyan);
-      position: relative; overflow: hidden;
-      transition: color 0.3s;
-      animation: nav-in 0.8s 0.2s var(--ease-out) both;
-    }
-    .nav-cta::before {
-      content: ''; position: absolute; inset: 0;
-      background: var(--cyan); transform: translateX(-101%);
-      transition: transform 0.35s var(--ease-out);
-    }
-    .nav-cta:hover { color: var(--bg); }
-    .nav-cta:hover::before { transform: translateX(0); }
-    .nav-cta span { position: relative; z-index: 1; }
 
-    @keyframes nav-in {
-      from { opacity: 0; transform: translateY(-12px); }
+    .logo-gem {
+      width: 34px;
+      height: 34px;
+    }
+
+    .logo-text {
+      font-family: var(--serif);
+      font-weight: 300;
+      font-size: 17px;
+      letter-spacing: 0.12em;
+      color: var(--crystal);
+      text-transform: uppercase;
+    }
+
+    .nav-x {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 100;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--dim);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .nav-x:hover { color: var(--crystal); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 72px 20px 52px;
+      animation: revealUp 0.9s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    @keyframes revealUp {
+      from { opacity: 0; transform: translateY(24px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ====================== HERO ====================== */
-    .hero {
-      min-height: 100dvh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 8rem 2rem 5rem;
-      text-align: center;
-      position: relative;
+    .hero-kicker {
+      font-size: 10px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 16px;
     }
-
-    /* Floating crystal at hero center */
-    .hero-crystal {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 520px; height: 520px;
-      opacity: 0.06;
-      pointer-events: none;
-      animation: crystal-float 8s ease-in-out infinite;
-    }
-    @keyframes crystal-float {
-      0%, 100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
-      33%       { transform: translate(-50%, -52%) rotate(4deg) scale(1.02); }
-      66%       { transform: translate(-50%, -48%) rotate(-3deg) scale(0.98); }
-    }
-
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.3rem 1rem;
-      border: 1px solid var(--border-lit);
-      border-radius: 100px;
-      background: var(--cyan-dim);
-      font-family: var(--f-display); font-size: 0.58rem;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--cyan); margin-bottom: 2rem;
-      animation: hero-el 1s 0.3s var(--ease-out) both;
-    }
-    .hero-badge-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 10px var(--cyan);
-      animation: blink 1.8s ease-in-out infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
     .hero-title {
-      font-family: var(--f-display);
-      font-size: clamp(3rem, 8vw, 7.5rem);
-      font-weight: 700;
-      line-height: 0.92;
-      letter-spacing: -0.01em;
-      background: linear-gradient(145deg, #ffffff 0%, #c8f0ff 30%, var(--cyan) 60%, #3aa8c0 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 2rem;
-      animation: hero-el 1s 0.45s var(--ease-out) both;
+      font-family: var(--serif);
+      font-size: clamp(44px, 8vw, 80px);
+      font-weight: 300;
+      font-style: italic;
+      color: var(--crystal);
+      line-height: 1.05;
+      letter-spacing: 0.02em;
+      margin-bottom: 10px;
+      text-shadow: 0 0 60px rgba(180,224,255,0.3), 0 0 120px rgba(180,224,255,0.1);
     }
 
     .hero-sub {
-      font-size: clamp(0.95rem, 1.5vw, 1.1rem);
-      color: var(--muted); line-height: 1.75;
-      max-width: 48ch; font-weight: 300;
-      margin-bottom: 3rem;
-      animation: hero-el 1s 0.6s var(--ease-out) both;
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 100;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 0;
     }
 
-    .hero-actions {
-      display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
-      animation: hero-el 1s 0.75s var(--ease-out) both;
+    /* Decorative line */
+    .divider {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 0 auto 48px;
+      max-width: 400px;
     }
 
-    @keyframes hero-el {
-      from { opacity: 0; transform: translateY(28px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-glow), transparent);
     }
 
-    /* Primary button */
-    .btn-primary {
-      font-family: var(--f-display); font-size: 0.62rem; font-weight: 700;
-      letter-spacing: 0.16em; text-transform: uppercase;
-      padding: 1rem 2.4rem;
-      border-radius: 100px;
-      background: linear-gradient(135deg, var(--cyan) 0%, #4bafc5 100%);
-      color: var(--bg);
-      box-shadow: 0 0 32px rgba(125,216,232,0.45), 0 4px 20px rgba(0,0,0,0.4);
-      transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), opacity 0.2s;
-      position: relative; overflow: hidden;
-    }
-    .btn-primary::after {
-      content: ''; position: absolute; inset: 0;
-      background: rgba(255,255,255,0.18);
-      transform: translateX(-100%) skewX(-15deg);
-      transition: transform 0.5s var(--ease-out);
-    }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 50px rgba(125,216,232,0.6), 0 10px 32px rgba(0,0,0,0.5); }
-    .btn-primary:hover::after { transform: translateX(200%) skewX(-15deg); }
-    .btn-primary:active { transform: translateY(0); }
-
-    /* ====================== MODAL ====================== */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 300;
-      background: rgba(4,8,16,0.88);
-      backdrop-filter: blur(16px) saturate(1.3);
-      -webkit-backdrop-filter: blur(16px) saturate(1.3);
-      display: flex; align-items: center; justify-content: center;
-      padding: 1rem;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.35s var(--ease-out);
-    }
-    .modal-overlay.open { opacity: 1; pointer-events: all; }
-
-    .modal-window {
-      width: 100%; max-width: 620px; max-height: 92dvh;
-      display: flex; flex-direction: column;
-      border-radius: 1.5rem; overflow: hidden;
-      background: rgba(6,11,22,0.96);
-      border: 1px solid rgba(125,216,232,0.16);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,0.05) inset,
-        0 40px 100px rgba(0,0,0,0.85),
-        0 0 80px rgba(125,216,232,0.06);
-      transform: scale(0.93) translateY(20px);
-      transition: transform 0.4s var(--ease-out);
-    }
-    .modal-overlay.open .modal-window { transform: scale(1) translateY(0); }
-
-    /* Titlebar */
-    .modal-bar {
-      padding: 0.9rem 1.5rem;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: rgba(255,255,255,0.025); flex-shrink: 0;
-    }
-    .modal-bar-title {
-      font-family: var(--f-display); font-size: 0.55rem;
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
-    }
-    .modal-x {
-      width: 30px; height: 30px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--faint); transition: background 0.2s, color 0.2s;
-    }
-    .modal-x:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-
-    /* Modal body */
-    .modal-body {
-      overflow-y: auto; flex: 1;
-      padding: 2.5rem 2.5rem 3rem;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(125,216,232,0.2) transparent;
-    }
-
-    /* Animated top glow bar */
-    .modal-glow-bar {
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--cyan), var(--cyan-bright), var(--cyan), transparent);
-      background-size: 200% 100%;
-      animation: glow-bar-move 3s linear infinite;
+    .divider-gem {
+      width: 6px;
+      height: 6px;
+      background: var(--crystal-dim);
+      transform: rotate(45deg);
       flex-shrink: 0;
     }
-    @keyframes glow-bar-move {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
+
+    /* ── FORM CARD ── */
+    .card {
+      position: relative;
+      z-index: 1;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+      animation: revealUp 0.9s 0.15s cubic-bezier(.16,1,.3,1) both;
     }
 
-    .modal-header { text-align: center; margin-bottom: 2rem; }
-    .modal-badge {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0.25rem 0.85rem;
-      border: 1px solid var(--border-lit); border-radius: 100px;
-      background: var(--cyan-dim);
-      font-family: var(--f-display); font-size: 0.55rem;
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--cyan);
-      margin-bottom: 1rem;
-    }
-    .modal-title {
-      font-family: var(--f-display);
-      font-size: clamp(1.3rem, 3vw, 1.9rem);
-      font-weight: 700; letter-spacing: 0.03em;
-      background: linear-gradient(135deg, #fff, #b8f0ff, var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.5rem;
-    }
-    .modal-sub { font-size: 0.82rem; color: var(--muted); }
+    /* ── FIELD ── */
+    .field { margin-bottom: 24px; }
 
-    /* Progress */
-    .progress-wrap {
-      height: 2px; border-radius: 100px;
-      background: rgba(255,255,255,0.05); margin-bottom: 0.5rem; overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%; border-radius: 100px;
-      background: linear-gradient(90deg, var(--cyan), var(--cyan-bright));
-      transition: width 0.5s var(--ease-out);
-      box-shadow: 0 0 10px rgba(125,216,232,0.6);
-    }
-    .progress-text {
-      font-family: var(--f-display); font-size: 0.55rem;
-      letter-spacing: 0.1em; color: var(--faint);
-      text-align: right; margin-bottom: 1.75rem;
+    .field-label {
+      font-size: 9px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    /* Tasks label */
-    .tasks-label {
-      font-family: var(--f-display); font-size: 0.55rem;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--cyan); margin-bottom: 1rem;
+    .req-gem {
+      width: 4px;
+      height: 4px;
+      background: var(--yellow);
+      transform: rotate(45deg);
+      display: inline-block;
+      flex-shrink: 0;
     }
-    .tasks-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
 
-    /* Task item */
-    .task-item {
-      display: flex; align-items: flex-start; gap: 1rem;
-      padding: 1rem 1.25rem;
+    .input {
+      width: 100%;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 0.875rem;
-      background: rgba(255,255,255,0.025);
-      transition: border-color 0.3s, background 0.3s, transform 0.25s var(--ease-out);
-    }
-    .task-item:hover { transform: translateX(2px); }
-    .task-item.done {
-      border-color: rgba(125,216,232,0.22);
-      background: rgba(125,216,232,0.04);
-    }
-
-    .task-num {
-      width: 28px; height: 28px; flex-shrink: 0;
-      border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.14);
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--f-display); font-size: 0.6rem; font-weight: 700;
-      color: var(--faint);
-      transition: all 0.35s var(--ease-out);
-    }
-    .task-item.done .task-num {
-      background: var(--cyan); border-color: var(--cyan);
-      color: var(--bg);
-      box-shadow: 0 0 12px rgba(125,216,232,0.5);
+      color: var(--white);
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      padding: 14px 18px;
+      outline: none;
+      border-radius: 2px;
+      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
     }
 
-    .task-content { flex: 1; }
-    .task-title { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }
-    .task-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.6; }
-    .task-desc a { color: var(--cyan); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
-
-    .task-check { width: 20px; height: 20px; flex-shrink: 0; margin-top: 4px; }
-    .task-check svg { width: 20px; height: 20px; }
-    .task-item.done .check-empty { display: none; }
-    .task-item:not(.done) .check-done { display: none; }
-    .check-done path { stroke: var(--cyan); }
-    .check-done circle { stroke: var(--cyan); }
-
-    /* Inputs */
-    .form-label {
-      font-family: var(--f-display); font-size: 0.55rem;
-      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
-      display: block; margin-bottom: 0.45rem; margin-top: 0.75rem;
+    .input::placeholder {
+      color: rgba(184,224,255,0.15);
+      font-style: italic;
+      font-family: var(--serif);
+      font-size: 14px;
     }
-    .form-input {
-      width: 100%; padding: 0.65rem 0.9rem;
-      border-radius: 0.6rem;
-      border: 1px solid rgba(255,255,255,0.09);
-      background: rgba(255,255,255,0.04);
-      color: var(--text); font-size: 0.85rem; font-family: var(--f-body);
-      outline: none; transition: border-color 0.25s, box-shadow 0.25s;
-    }
-    .form-input::placeholder { color: var(--faint); }
-    .form-input:focus {
-      border-color: rgba(125,216,232,0.35);
-      box-shadow: 0 0 0 3px rgba(125,216,232,0.07);
-    }
-    .form-input.valid { border-color: rgba(125,216,232,0.3); }
-    .form-hint { font-size: 0.7rem; color: var(--faint); margin-top: 0.25rem; }
 
-    /* Submit */
+    .input:focus {
+      border-color: var(--border-glow);
+      background: rgba(180,224,255,0.04);
+      box-shadow: 0 0 0 1px rgba(180,224,255,0.08), 0 0 24px rgba(180,224,255,0.04);
+    }
+
+    .input.error {
+      border-color: rgba(255,100,100,0.4);
+      box-shadow: 0 0 0 1px rgba(255,100,100,0.08);
+    }
+
+    .error-msg {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: rgba(255,140,140,0.7);
+      margin-top: 6px;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    /* ── TASKS BOX ── */
+    .tasks-wrap {
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 22px;
+      margin-bottom: 24px;
+      background: var(--crystal-faint);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Corner accents */
+    .tasks-wrap::before, .tasks-wrap::after {
+      content: '';
+      position: absolute;
+      width: 10px; height: 10px;
+      border-color: var(--crystal-dim);
+      border-style: solid;
+    }
+    .tasks-wrap::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .tasks-wrap::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    .tasks-title {
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 20px;
+    }
+
+    .task-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .task-row + .task-row { margin-top: 16px; }
+
+    .task-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    /* Custom checkbox */
+    .task-cb {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border: 1px solid rgba(180,224,255,0.25);
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: all 0.2s;
+      transform: rotate(45deg);
+      border-radius: 1px;
+    }
+
+    .task-cb:checked {
+      background: var(--crystal-dim);
+      border-color: var(--crystal);
+      box-shadow: 0 0 8px rgba(180,224,255,0.4);
+    }
+
+    .task-cb:checked::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.6), transparent);
+    }
+
+    .task-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: rgba(184,224,255,0.6);
+      cursor: pointer;
+      transition: color 0.2s;
+      font-weight: 300;
+    }
+
+    .task-row.done .task-label {
+      color: rgba(184,224,255,0.25);
+      text-decoration: line-through;
+      text-decoration-color: rgba(184,224,255,0.15);
+    }
+
+    /* Go button */
+    .go-btn {
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #000;
+      background: var(--crystal-dim);
+      border: none;
+      padding: 7px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      border-radius: 1px;
+      white-space: nowrap;
+      transition: background 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .go-btn:hover {
+      background: var(--crystal);
+      box-shadow: 0 0 16px rgba(180,224,255,0.35);
+    }
+
+    /* ── SUBMIT ── */
     .submit-btn {
-      width: 100%; padding: 1rem;
-      border-radius: 0.75rem;
-      font-family: var(--f-display); font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.14em; text-transform: uppercase;
-      background: linear-gradient(135deg, var(--cyan) 0%, #4bafc5 100%);
-      color: var(--bg);
-      box-shadow: 0 0 28px rgba(125,216,232,0.35), 0 4px 16px rgba(0,0,0,0.4);
-      transition: opacity 0.2s, transform 0.25s var(--ease-out), box-shadow 0.25s;
-      position: relative; overflow: hidden;
+      width: 100%;
+      background: var(--blue-btn);
+      color: rgba(184,224,255,0.5);
+      border: 1px solid rgba(80,130,220,0.3);
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      padding: 18px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
+      margin-top: 4px;
     }
-    .submit-btn::after {
-      content: ''; position: absolute; inset: 0;
-      background: rgba(255,255,255,0.16);
-      transform: translateX(-100%) skewX(-15deg);
-      transition: transform 0.5s var(--ease-out);
-    }
-    .submit-btn:hover:not(:disabled)::after { transform: translateX(200%) skewX(-15deg); }
-    .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 44px rgba(125,216,232,0.5), 0 8px 24px rgba(0,0,0,0.5); }
-    .submit-btn:disabled { opacity: 0.38; cursor: not-allowed; }
-    .submit-btn:active:not(:disabled) { transform: translateY(0); }
 
-    /* Success */
-    .success-panel { text-align: center; padding: 2.5rem 0; display: none; }
-    .success-panel.show { display: block; }
-    .success-icon {
-      width: 76px; height: 76px; border-radius: 50%;
-      background: rgba(125,216,232,0.1);
-      border: 1.5px solid var(--cyan);
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1.5rem;
-      box-shadow: 0 0 30px rgba(125,216,232,0.3);
-      animation: success-pulse 2s ease-in-out infinite;
+    .submit-btn:hover {
+      background: var(--blue-btn-h);
+      color: rgba(184,224,255,0.9);
+      border-color: rgba(100,160,255,0.4);
+      box-shadow: 0 0 24px rgba(80,140,255,0.2);
     }
-    @keyframes success-pulse {
-      0%,100% { box-shadow: 0 0 30px rgba(125,216,232,0.3); }
-      50%      { box-shadow: 0 0 55px rgba(125,216,232,0.55); }
+
+    .submit-btn:active { transform: scale(0.998); }
+
+    /* ── SUCCESS ── */
+    #success {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(6,8,16,0.93);
+      backdrop-filter: blur(24px);
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.4s ease;
     }
+    #success.show { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .success-card {
+      text-align: center;
+      border: 1px solid var(--border-glow);
+      padding: 56px 64px;
+      background: rgba(180,224,255,0.03);
+      position: relative;
+      animation: scaleUp 0.5s cubic-bezier(.16,1,.3,1) both;
+      max-width: 380px;
+      width: 90%;
+    }
+
+    .success-card::before, .success-card::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      border-color: var(--crystal-dim);
+      border-style: solid;
+    }
+    .success-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .success-card::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    @keyframes scaleUp {
+      from { transform: scale(0.88); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .success-gem {
+      margin: 0 auto 20px;
+      width: 32px; height: 32px;
+    }
+
     .success-title {
-      font-family: var(--f-display); font-size: 1.4rem; font-weight: 700;
-      color: var(--cyan-bright); margin-bottom: 0.75rem;
+      font-family: var(--serif);
+      font-size: 32px;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--crystal);
+      margin-bottom: 10px;
+      text-shadow: 0 0 40px rgba(180,224,255,0.4);
     }
-    .success-body { font-size: 0.85rem; color: var(--muted); max-width: 38ch; margin: 0 auto; line-height: 1.75; }
 
-    /* ====================== RESPONSIVE ====================== */
-    @media (max-width: 640px) {
-      .nav { padding: 0.9rem 1.25rem; }
-      .modal-body { padding: 1.75rem 1.25rem 2.5rem; }
+    .success-sub {
+      font-size: 9px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--dim);
     }
+
+    .success-close {
+      margin-top: 32px;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: rgba(180,224,255,0.2);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .success-close:hover { color: var(--dim); }
   </style>
 </head>
 <body>
 
-<!-- Animated WebGL-style canvas background -->
-<canvas id="bgCanvas"></canvas>
-<div class="scanlines" aria-hidden="true"></div>
-
-<div class="page">
+  <!-- Background -->
+  <div class="bg-layer"></div>
+  <div class="particles" id="particles"></div>
 
   <!-- NAV -->
-  <nav class="nav" id="mainNav">
-    <div class="nav-logo">
-      <svg class="logo-gem" viewBox="0 0 34 34" fill="none" aria-hidden="true">
-        <polygon points="17,1 33,9 33,25 17,33 1,25 1,9" stroke="#7dd8e8" stroke-width="1.2" fill="rgba(125,216,232,0.05)"/>
-        <polygon points="17,7 27,12 27,22 17,27 7,22 7,12" stroke="#b8f0ff" stroke-width="0.8" fill="rgba(125,216,232,0.07)" opacity="0.8"/>
-        <circle cx="17" cy="17" r="3.5" fill="#7dd8e8" opacity="0.92"/>
-        <line x1="17" y1="1" x2="17" y2="7" stroke="#7dd8e8" stroke-width="0.8" opacity="0.5"/>
-        <line x1="17" y1="27" x2="17" y2="33" stroke="#7dd8e8" stroke-width="0.8" opacity="0.5"/>
-        <line x1="33" y1="9" x2="27" y2="12" stroke="#7dd8e8" stroke-width="0.8" opacity="0.5"/>
-        <line x1="1" y1="9" x2="7" y2="12" stroke="#7dd8e8" stroke-width="0.8" opacity="0.5"/>
-        <line x1="33" y1="25" x2="27" y2="22" stroke="#7dd8e8" stroke-width="0.8" opacity="0.5"/>
-        <line x1="1" y1="25" x2="7" y2="22" stroke="#7dd8e8" stroke-width="0.8" opacity="0.5"/>
+  <nav>
+    <a class="nav-logo" href="https://x.com/crystalmachine_" target="_blank" rel="noopener">
+      <!-- Crystal gem SVG logo -->
+      <svg class="logo-gem" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="17,2 30,12 25,30 9,30 4,12" fill="rgba(180,224,255,0.08)" stroke="rgba(180,224,255,0.4)" stroke-width="1"/>
+        <polygon points="17,2 30,12 17,8" fill="rgba(180,224,255,0.12)" stroke="rgba(180,224,255,0.2)" stroke-width="0.5"/>
+        <polygon points="17,2 4,12 17,8"  fill="rgba(255,255,255,0.07)" stroke="rgba(180,224,255,0.2)" stroke-width="0.5"/>
+        <polygon points="17,8 30,12 25,30 9,30 4,12" fill="rgba(180,224,255,0.04)" stroke="rgba(180,224,255,0.15)" stroke-width="0.5"/>
+        <circle cx="17" cy="8" r="1.2" fill="rgba(200,235,255,0.8)"/>
       </svg>
-      <span class="nav-brand">Crystal Machines</span>
-    </div>
-    <button class="nav-cta" onclick="openModal()"><span>Apply for WL</span></button>
+      <span class="logo-text">Crystal Machines</span>
+    </a>
+    <a class="nav-x" href="https://x.com/crystalmachine_" target="_blank" rel="noopener">@crystalmachine_</a>
   </nav>
 
   <!-- HERO -->
-  <section class="hero" id="home">
-    <!-- Decorative background crystal -->
-    <svg class="hero-crystal" viewBox="0 0 400 400" fill="none" aria-hidden="true">
-      <polygon points="200,20 380,110 380,290 200,380 20,290 20,110" stroke="#7dd8e8" stroke-width="1.5" fill="none"/>
-      <polygon points="200,60 340,130 340,270 200,340 60,270 60,130" stroke="#7dd8e8" stroke-width="1" fill="none"/>
-      <polygon points="200,100 300,150 300,250 200,300 100,250 100,150" stroke="#7dd8e8" stroke-width="0.7" fill="none"/>
-      <line x1="200" y1="20" x2="200" y2="380" stroke="#7dd8e8" stroke-width="0.5"/>
-      <line x1="20" y1="110" x2="380" y2="290" stroke="#7dd8e8" stroke-width="0.5"/>
-      <line x1="380" y1="110" x2="20" y2="290" stroke="#7dd8e8" stroke-width="0.5"/>
-      <circle cx="200" cy="200" r="20" fill="#7dd8e8" opacity="0.6"/>
-    </svg>
+  <div class="hero">
+    <div class="hero-kicker">Genesis Collection</div>
+    <div class="hero-title">Whitelist</div>
+    <div class="hero-sub">Crystalline Automata · On-Chain</div>
+  </div>
 
-    <div class="hero-badge">
-      <span class="hero-badge-dot"></span>
-      Whitelist Now Open
-    </div>
-    <h1 class="hero-title">Crystal<br>Machines</h1>
-    <p class="hero-sub">A collection of translucent vehicular sculptures forged from light and glass. Every machine is a frozen moment of engineered beauty.</p>
-    <div class="hero-actions">
-      <button class="btn-primary" onclick="openModal()">Apply for Whitelist</button>
-    </div>
-  </section>
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-gem"></div>
+    <div class="divider-line"></div>
+  </div>
 
-</div><!-- end .page -->
+  <!-- FORM CARD -->
+  <div class="card">
 
-<!-- MODAL -->
-<div class="modal-overlay" id="wlModal" role="dialog" aria-modal="true" aria-labelledby="wlTitle">
-  <div class="modal-window">
-    <div class="modal-glow-bar"></div>
-    <div class="modal-bar">
-      <span class="modal-bar-title">WL Application — Crystal Machines</span>
-      <button class="modal-x" onclick="closeModal()" aria-label="Close">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+    <!-- X Handle -->
+    <div class="field">
+      <div class="field-label">
+        <span class="req-gem"></span>
+        your x handle
+      </div>
+      <input class="input" id="handle" type="text" placeholder="@handle" autocomplete="off" spellcheck="false" />
+      <div class="error-msg" id="handle-err">please enter your x handle</div>
     </div>
 
-    <div class="modal-body">
-      <div class="modal-header">
-        <div class="modal-badge">
-          <span class="hero-badge-dot"></span>
-          Whitelist Application
+    <!-- Tasks -->
+    <div class="tasks-wrap">
+      <div class="tasks-title">complete the tasks</div>
+
+      <div class="task-row" id="row1">
+        <div class="task-left">
+          <input class="task-cb" type="checkbox" id="t1" disabled />
+          <label class="task-label" for="t1">follow @crystalmachine_</label>
         </div>
-        <h2 class="modal-title" id="wlTitle">Claim Your Spot</h2>
-        <p class="modal-sub">Complete all 4 tasks, then submit your wallet address.</p>
+        <a class="go-btn" id="go1" href="https://x.com/crystalmachine_" target="_blank" rel="noopener">go ↗</a>
       </div>
 
-      <div class="progress-wrap">
-        <div class="progress-fill" id="progressFill" style="width:0%"></div>
-      </div>
-      <div class="progress-text" id="progressText">0 / 4 tasks completed</div>
-
-      <form id="wlForm" novalidate onsubmit="handleSubmit(event)">
-        <div class="tasks-label">Tasks to complete</div>
-        <div class="tasks-list">
-
-          <!-- Task 1 -->
-          <div class="task-item" id="task1">
-            <div class="task-num">1</div>
-            <div class="task-content">
-              <div class="task-title">Follow @crystalmachine_ on X</div>
-              <div class="task-desc">
-                Follow <a href="https://x.com/crystalmachine_" target="_blank" rel="noopener">@crystalmachine_</a> and enter your X username below.
-              </div>
-              <label class="form-label" for="xUsername">Your X username</label>
-              <input class="form-input" type="text" id="xUsername" placeholder="@yourhandle" autocomplete="off" oninput="validateTask1()">
-            </div>
-            <div class="task-check">
-              <svg class="check-empty" viewBox="0 0 20 20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"><circle cx="10" cy="10" r="9"/></svg>
-              <svg class="check-done" viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="10" r="9"/><path d="M6 10l3 3 5-5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/></svg>
-            </div>
-          </div>
-
-          <!-- Task 2 -->
-          <div class="task-item" id="task2">
-            <div class="task-num">2</div>
-            <div class="task-content">
-              <div class="task-title">Like & Retweet the announcement post</div>
-              <div class="task-desc">
-                Like and RT: <a href="https://x.com/crystalmachine_/status/2054610350784332120" target="_blank" rel="noopener">x.com/crystalmachine_/status/...</a>
-              </div>
-              <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;margin-top:0.75rem">
-                <input type="checkbox" id="task2check" style="accent-color:var(--cyan);width:15px;height:15px;" onchange="validateTask2()">
-                <span style="font-size:0.75rem;color:var(--muted)">I have liked & retweeted the post</span>
-              </label>
-            </div>
-            <div class="task-check">
-              <svg class="check-empty" viewBox="0 0 20 20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"><circle cx="10" cy="10" r="9"/></svg>
-              <svg class="check-done" viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="10" r="9"/><path d="M6 10l3 3 5-5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/></svg>
-            </div>
-          </div>
-
-          <!-- Task 3 -->
-          <div class="task-item" id="task3">
-            <div class="task-num">3</div>
-            <div class="task-content">
-              <div class="task-title">Comment on the post & drop your link</div>
-              <div class="task-desc">
-                Comment on: <a href="https://x.com/crystalmachine_/status/2054610350784332120" target="_blank" rel="noopener">x.com/crystalmachine_/status/...</a><br>Then paste your comment link below.
-              </div>
-              <label class="form-label" for="commentLink">Your comment link</label>
-              <input class="form-input" type="url" id="commentLink" placeholder="https://x.com/yourhandle/status/..." autocomplete="off" oninput="validateTask3()">
-            </div>
-            <div class="task-check">
-              <svg class="check-empty" viewBox="0 0 20 20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"><circle cx="10" cy="10" r="9"/></svg>
-              <svg class="check-done" viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="10" r="9"/><path d="M6 10l3 3 5-5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/></svg>
-            </div>
-          </div>
-
-          <!-- Task 4 -->
-          <div class="task-item" id="task4">
-            <div class="task-num">4</div>
-            <div class="task-content">
-              <div class="task-title">Drop your EVM wallet address</div>
-              <div class="task-desc">Enter your EVM-compatible wallet address (0x…).</div>
-              <label class="form-label" for="walletAddr">EVM wallet address</label>
-              <input class="form-input" type="text" id="walletAddr" placeholder="0x..." autocomplete="off" oninput="validateTask4()" spellcheck="false">
-              <div class="form-hint">Must start with 0x and be 42 characters</div>
-            </div>
-            <div class="task-check">
-              <svg class="check-empty" viewBox="0 0 20 20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"><circle cx="10" cy="10" r="9"/></svg>
-              <svg class="check-done" viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="10" r="9"/><path d="M6 10l3 3 5-5" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/></svg>
-            </div>
-          </div>
-
+      <div class="task-row" id="row2">
+        <div class="task-left">
+          <input class="task-cb" type="checkbox" id="t2" disabled />
+          <label class="task-label" for="t2">comment under the tweet</label>
         </div>
-
-        <button type="submit" class="submit-btn" id="submitBtn" disabled>Claim My Spot →</button>
-      </form>
-
-      <!-- Success -->
-      <div class="success-panel" id="successPanel">
-        <div class="success-icon">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7dd8e8" stroke-width="1.5">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-        </div>
-        <h3 class="success-title">You're on the list!</h3>
-        <p class="success-body" id="successBody">Your whitelist application has been received. We'll announce the mint date on <a href="https://x.com/crystalmachine_" target="_blank" style="color:var(--cyan)">@crystalmachine_</a>. Stay tuned.</p>
+        <a class="go-btn" id="go2" href="https://x.com/crystalmachine_/status/2054610350784332120" target="_blank" rel="noopener">go ↗</a>
       </div>
+    </div>
+
+    <div class="error-msg" id="tasks-err" style="margin-top:-18px;margin-bottom:18px;">please click go ↗ to complete both tasks first</div>
+
+    <!-- ETH Address -->
+    <div class="field">
+      <div class="field-label">
+        <span class="req-gem"></span>
+        your eth address
+      </div>
+      <input class="input" id="eth" type="text" placeholder="0x..." autocomplete="off" spellcheck="false" />
+      <div class="error-msg" id="eth-err">please enter a valid eth address (0x...)</div>
+    </div>
+
+    <!-- Submit -->
+    <button class="submit-btn" id="submit-btn">submit →</button>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="success">
+    <div class="success-card">
+      <svg class="success-gem" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 28,11 23,28 9,28 4,11" fill="rgba(180,224,255,0.1)" stroke="rgba(180,224,255,0.5)" stroke-width="1"/>
+        <polygon points="16,2 28,11 16,8" fill="rgba(180,224,255,0.15)" stroke="rgba(180,224,255,0.3)" stroke-width="0.5"/>
+        <polygon points="16,2 4,11 16,8" fill="rgba(255,255,255,0.1)"  stroke="rgba(180,224,255,0.3)" stroke-width="0.5"/>
+        <circle cx="16" cy="8" r="1.5" fill="rgba(200,235,255,0.9)"/>
+      </svg>
+      <div class="success-title">crystallized.</div>
+      <div class="success-sub">your address has been registered</div>
+      <div class="success-close" onclick="document.getElementById('success').classList.remove('show')">[ close ]</div>
     </div>
   </div>
-</div>
 
-<script>
-// ==============================
-// CANVAS BACKGROUND
-// ==============================
-(function() {
-  const canvas = document.getElementById('bgCanvas');
-  const ctx = canvas.getContext('2d');
-  let W, H, particles, nodes;
-
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-
-  // Floating particles
-  function initParticles() {
-    particles = Array.from({length: 60}, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.5 + 0.4,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
-      a: Math.random() * 0.5 + 0.15
-    }));
-
-    // Crystal network nodes
-    nodes = Array.from({length: 8}, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3
-    }));
-  }
-
-  function drawOrbs() {
-    // Primary orb top-left
-    const g1 = ctx.createRadialGradient(W * 0.1, H * 0.15, 0, W * 0.1, H * 0.15, W * 0.35);
-    g1.addColorStop(0, 'rgba(125,216,232,0.09)');
-    g1.addColorStop(1, 'transparent');
-    ctx.fillStyle = g1;
-    ctx.fillRect(0, 0, W, H);
-
-    // Secondary orb bottom-right
-    const g2 = ctx.createRadialGradient(W * 0.88, H * 0.85, 0, W * 0.88, H * 0.85, W * 0.28);
-    g2.addColorStop(0, 'rgba(75,175,197,0.07)');
-    g2.addColorStop(1, 'transparent');
-    ctx.fillStyle = g2;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  function drawGrid() {
-    const sz = 56;
-    ctx.strokeStyle = 'rgba(125,216,232,0.025)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < W; x += sz) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  <script>
+    // Particles
+    const pContainer = document.getElementById('particles');
+    for (let i = 0; i < 28; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 2 + 0.5;
+      p.style.cssText = `
+        width: ${size}px;
+        height: ${size}px;
+        left: ${Math.random() * 100}%;
+        animation-duration: ${8 + Math.random() * 18}s;
+        animation-delay: ${-Math.random() * 20}s;
+        opacity: ${0.3 + Math.random() * 0.5};
+      `;
+      pContainer.appendChild(p);
     }
-    for (let y = 0; y < H; y += sz) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
-  }
 
-  function drawNetwork() {
-    // Connect nearby nodes
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const dx = nodes[j].x - nodes[i].x;
-        const dy = nodes[j].y - nodes[i].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < 350) {
-          const alpha = (1 - dist / 350) * 0.12;
-          ctx.strokeStyle = `rgba(125,216,232,${alpha})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(nodes[i].x, nodes[i].y);
-          ctx.lineTo(nodes[j].x, nodes[j].y);
-          ctx.stroke();
-        }
-      }
-      // Node dot
-      ctx.fillStyle = 'rgba(125,216,232,0.25)';
-      ctx.beginPath();
-      ctx.arc(nodes[i].x, nodes[i].y, 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Move
-      nodes[i].x += nodes[i].vx;
-      nodes[i].y += nodes[i].vy;
-      if (nodes[i].x < 0 || nodes[i].x > W) nodes[i].vx *= -1;
-      if (nodes[i].y < 0 || nodes[i].y > H) nodes[i].vy *= -1;
-    }
-  }
-
-  function drawParticles() {
-    particles.forEach(p => {
-      ctx.fillStyle = `rgba(125,216,232,${p.a})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0) p.x = W;
-      if (p.x > W) p.x = 0;
-      if (p.y < 0) p.y = H;
-      if (p.y > H) p.y = 0;
-    });
-  }
-
-  function animate() {
-    ctx.clearRect(0, 0, W, H);
-    drawOrbs();
-    drawGrid();
-    drawNetwork();
-    drawParticles();
-    requestAnimationFrame(animate);
-  }
-
-  window.addEventListener('resize', () => { resize(); initParticles(); });
-  resize();
-  initParticles();
-  animate();
-})();
-
-// ==============================
-// NAV SCROLL
-// ==============================
-window.addEventListener('scroll', () => {
-  document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 60);
-});
-
-// ==============================
-// MODAL
-// ==============================
-function openModal() {
-  document.getElementById('wlModal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeModal() {
-  document.getElementById('wlModal').classList.remove('open');
-  document.body.style.overflow = '';
-}
-document.getElementById('wlModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-// ==============================
-// TASK VALIDATION
-// ==============================
-const taskState = {1:false,2:false,3:false,4:false};
-
-function setTask(num, done) {
-  taskState[num] = done;
-  document.getElementById('task' + num).classList.toggle('done', done);
-  const completed = Object.values(taskState).filter(Boolean).length;
-  document.getElementById('progressFill').style.width = (completed / 4 * 100) + '%';
-  document.getElementById('progressText').textContent = completed + ' / 4 tasks completed';
-  document.getElementById('submitBtn').disabled = completed < 4;
-}
-
-function validateTask1() {
-  const v = document.getElementById('xUsername').value.trim();
-  const ok = v.length >= 2;
-  document.getElementById('xUsername').classList.toggle('valid', ok);
-  setTask(1, ok);
-}
-function validateTask2() {
-  setTask(2, document.getElementById('task2check').checked);
-}
-function validateTask3() {
-  const v = document.getElementById('commentLink').value.trim();
-  const ok = v.startsWith('https://x.com/') && v.length > 20;
-  document.getElementById('commentLink').classList.toggle('valid', ok);
-  setTask(3, ok);
-}
-function validateTask4() {
-  const v = document.getElementById('walletAddr').value.trim();
-  const ok = /^0x[a-fA-F0-9]{40}$/.test(v);
-  document.getElementById('walletAddr').classList.toggle('valid', ok);
-  setTask(4, ok);
-}
-
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK7GgVTWZmTKM-wJnvjRKB7Tb4BGvd7PklL_vDOIn2O1PMg4WnVwNwsmTDqyslQ9SGxA/exec"; // Google Apps Script Web App URL
-
-async function handleSubmit(e) {
-  e.preventDefault();
-  if (Object.values(taskState).some(v => !v)) return;
-  
-  const submitBtn = document.getElementById('submitBtn');
-  const originalText = submitBtn.textContent;
-  submitBtn.textContent = "Submitting...";
-  submitBtn.disabled = true;
-
-  const username = document.getElementById('xUsername').value.trim();
-  const commentLink = document.getElementById('commentLink').value.trim();
-  const wallet = document.getElementById('walletAddr').value.trim();
-
-  try {
-    if (SCRIPT_URL !== "YOUR_GOOGLE_SHEET_WEB_APP_URL") {
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('commentLink', commentLink);
-      formData.append('wallet', wallet);
-
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: formData
+    // Go buttons auto-check their task
+    [['go1','t1','row1'], ['go2','t2','row2']].forEach(([goId, cbId, rowId]) => {
+      document.getElementById(goId).addEventListener('click', () => {
+        setTimeout(() => {
+          const cb = document.getElementById(cbId);
+          cb.checked = true;
+          document.getElementById(rowId).classList.add('done');
+        }, 800); // slight delay so the tab opens first
       });
-    }
+    });
 
-    document.getElementById('wlForm').style.display = 'none';
-    const panel = document.getElementById('successPanel');
-    panel.classList.add('show');
-    document.getElementById('successBody').innerHTML =
-      '<strong style="color:var(--cyan)">' + username + '</strong>, you\'re on the list! Wallet <code style="font-size:0.82em;color:var(--muted)">' +
-      wallet.slice(0,6) + '...' + wallet.slice(-4) + '</code> registered. Announcement on <a href="https://x.com/crystalmachine_" target="_blank" style="color:var(--cyan)">@crystalmachine_</a>.';
-  } catch (error) {
-    console.error('Error submitting form:', error);
-    alert('There was an error submitting your application. Please try again.');
-    submitBtn.textContent = originalText;
-    submitBtn.disabled = false;
-  }
-}
-</script>
+    // ── PASTE YOUR APPS SCRIPT DEPLOYMENT URL HERE ──
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyXfWb9t91CWv4DCjsZKesXpNgGvy11DQHDkN3SBvADHA3Fq0NDBTy6MUypO86VWYrS/exec';
+
+    // Submit — tasks must be completed via go
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      let valid = true;
+
+      const handle = document.getElementById('handle');
+      const hErr = document.getElementById('handle-err');
+      if (!handle.value.trim()) {
+        handle.classList.add('error'); hErr.classList.add('show'); valid = false;
+      } else {
+        handle.classList.remove('error'); hErr.classList.remove('show');
+      }
+
+      const eth = document.getElementById('eth');
+      const eErr = document.getElementById('eth-err');
+      if (!/^0x[a-fA-F0-9]{40}$/.test(eth.value.trim())) {
+        eth.classList.add('error'); eErr.classList.add('show'); valid = false;
+      } else {
+        eth.classList.remove('error'); eErr.classList.remove('show');
+      }
+
+      const t1 = document.getElementById('t1').checked;
+      const t2 = document.getElementById('t2').checked;
+      const tasksErr = document.getElementById('tasks-err');
+      if (!t1 || !t2) {
+        tasksErr.classList.add('show'); valid = false;
+      } else {
+        tasksErr.classList.remove('show');
+      }
+
+      if (!valid) return;
+
+      // Show loading state
+      const btn = document.getElementById('submit-btn');
+      btn.textContent = 'submitting...';
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors', // Apps Script requires no-cors
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            handle: handle.value.trim(),
+            eth: eth.value.trim()
+          })
+        });
+        // no-cors means we can't read the response, but if no error thrown it worked
+        document.getElementById('success').classList.add('show');
+      } catch (err) {
+        btn.textContent = 'error — try again →';
+        btn.style.opacity = '1';
+        btn.disabled = false;
+        console.error(err);
+        return;
+      }
+
+      btn.textContent = 'submitted ✓';
+      btn.style.opacity = '0.5';
+    });
+  </script>
 </body>
 </html>
